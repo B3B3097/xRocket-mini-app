@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>XRocket AI Trader</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --card-bg: #16213e;
+            --text-color: #ffffff;
+            --accent: #0f3460;
+            --success: #4caf50;
+            --danger: #f44336;
+            --warning: #ff9800;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            padding: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background-color: rgba(76, 175, 80, 0.2);
+            color: var(--success);
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #a0a0a0;
+        }
+        
+        .price-display {
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .signal-box {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .signal-buy {
+            background-color: rgba(76, 175, 80, 0.2);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+        
+        .signal-sell {
+            background-color: rgba(244, 67, 54, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+        
+        .signal-wait {
+            background-color: rgba(255, 152, 0, 0.2);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+        
+        .mode-switch {
+            display: flex;
+            justify-content: space-between;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: #888;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .mode-btn.active {
+            background-color: var(--accent);
+            color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .action-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+            margin-top: 10px;
+        }
+        
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+            color: white;
+        }
+        
+        .chat-container {
+            height: 300px;
+            overflow-y: auto;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .message.bot {
+            background-color: var(--accent);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        
+        .message.user {
+            background-color: #2a2a4a;
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 2px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            background-color: rgba(0,0,0,0.3);
+            color: white;
+            outline: none;
+        }
+        
+        .send-btn {
+            padding: 0 20px;
+            background-color: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .stat-item {
+            background-color: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--success);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid var(--success);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🚀 XRocket AI Trader</div>
+            <div class="status-badge" id="connectionStatus">● Подключено</div>
+        </div>
+
+        <!-- Режим работы -->
+        <div class="card">
+            <div class="mode-switch">
+                <button class="mode-btn active" onclick="setMode('demo')">Демо Режим</button>
+                <button class="mode-btn" onclick="setMode('real')">Реальный Режим</button>
+            </div>
+            <div id="modeDescription" style="font-size: 12px; color: #888; text-align: center;">
+                Торговля на виртуальные средства. Безопасно для тестирования стратегий.
+            </div>
+        </div>
+
+        <!-- График и Цена -->
+        <div class="card">
+            <div class="card-title">BTC/USDT</div>
+            <div class="price-display" id="priceDisplay">$0.00</div>
+            <canvas id="priceChart" height="200"></canvas>
+        </div>
+
+        <!-- Сигнал -->
+        <div class="card">
+            <div class="card-title">AI Сигнал</div>
+            <div id="signalBox" class="signal-box signal-wait">
+                ОЖИДАНИЕ
+            </div>
+            <div style="margin-top: 10px; font-size: 12px; color: #888; text-align: center;">
+                Основано на RSI, MACD, SMA
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="card">
+            <div class="card-title">Статистика (24ч)</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="profitValue">+0.00%</div>
+                    <div class="stat-label">Прибыль</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tradesValue">0</div>
+                    <div class="stat-label">Сделки</div>
+                </div>
+            </div>
+            <div style="margin-top: 15px; font-size: 12px; color: #aaa; text-align: center;">
+                💡 60% от прибыли распределяется между инвесторами
+            </div>
+        </div>
+
+        <!-- Чат с ботом -->
+        <div class="card">
+            <div class="card-title">Помощник AI</div>
+            <div class="chat-container" id="chatContainer">
+                <div class="message bot">Привет! Я ваш AI-помощник. Спросите меня о текущем сигнале, статистике или настройках.</div>
+            </div>
+            <div class="input-group">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Введите сообщение...">
+                <button class="send-btn" onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+
+        <!-- Управление ключами -->
+        <div class="card">
+            <div class="card-title">Настройки API</div>
+            <button class="action-btn btn-primary" onclick="showKeyInput()">🔑 Добавить API Ключи</button>
+            <div id="keyStatus" style="margin-top: 10px; font-size: 12px; color: #888; text-align: center;">
+                Ключи хранятся только в памяти сеанса (4 часа)
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для ключей -->
+    <div id="keyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:var(--card-bg); padding:20px; border-radius:15px; width:80%; max-width:400px;">
+            <h3 style="margin-top:0;">Ввод API Ключей</h3>
+            <p style="font-size:12px; color:#aaa;">Ключи будут удалены автоматически через 4 часа или при закрытии вкладки.</p>
+            
+            <label style="display:block; margin-bottom:5px; font-size:12px;">Exchange (MEXC/XRocket)</label>
+            <select id="exchangeSelect" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; background:#0f3460; color:white; border:none;">
+                <option value="mexc">MEXC</option>
+                <option value="xrocket">XRocket</option>
+            </select>
+
+            <label style="display:block; margin-bottom:5px; font-size:12px;">API Key</label>
+            <input type="text" id="apiKeyInput" placeholder="Введите API Key" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; background:#0a0a1a; color:white; border:1px solid #333;">
+
+            <label style="display:block; margin-bottom:5px; font-size:12px;">Secret Key</label>
+            <input type="password" id="secretKeyInput" placeholder="Введите Secret Key" style="width:100%; padding:10px; margin-bottom:20px; border-radius:8px; background:#0a0a1a; color:white; border:1px solid #333;">
+
+            <button class="action-btn btn-success" onclick="saveKeys()">Сохранить</button>
+            <button class="action-btn" style="background:#333; color:white; margin-top:10px;" onclick="closeKeyModal()">Отмена</button>
+        </div>
+    </div>
+
+    <script>
+        // КОНФИГУРАЦИЯ: Вставьте сюда ваш URL от Replit
+        const BACKEND_URL = "https://45bf33ee-f2b3-4074-9c7d-74c132598100-00-38bwv545h4jni.spock.replit.dev:5000";
+        
+        let currentMode = 'demo';
+        let priceChart;
+        let priceData = [];
+        let labels = [];
+        let updateInterval;
+
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Настройка цветов под тему Telegram
+        if (tg.colorScheme === 'light') {
+            document.documentElement.style.setProperty('--bg-color', '#f0f2f5');
+            document.documentElement.style.setProperty('--card-bg', '#ffffff');
+            document.documentElement.style.setProperty('--text-color', '#000000');
+        }
+
+        // Инициализация графика
+        function initChart() {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Цена BTC',
+                        data: priceData,
+                        borderColor: '#4caf50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            display: true,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#888' }
+                        }
+                    },
+                    animation: { duration: 0 }
+                }
+            });
+        }
+
+        // Обновление данных с бэкенда
+        async function fetchData() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/data?mode=${currentMode}`);
+                if (!response.ok) throw new Error('Network error');
+                const data = await response.json();
+
+                // Обновление цены
+                document.getElementById('priceDisplay').innerText = `$${data.price.toFixed(2)}`;
+                
+                // Обновление графика
+                const now = new Date().toLocaleTimeString();
+                if (labels.length > 20) {
+                    labels.shift();
+                    priceData.shift();
+                }
+                labels.push(now);
+                priceData.push(data.price);
+                priceChart.update();
+
+                // Обновление сигнала
+                const signalBox = document.getElementById('signalBox');
+                signalBox.className = `signal-box signal-${data.signal.toLowerCase()}`;
+                signalBox.innerText = data.signal === 'BUY' ? 'ПОКУПАТЬ 📈' : (data.signal === 'SELL' ? 'ПРОДАВАТЬ 📉' : 'ОЖИДАНИЕ ⏳');
+
+                // Обновление статистики
+                document.getElementById('profitValue').innerText = `${data.profit >= 0 ? '+' : ''}${data.profit.toFixed(2)}%`;
+                document.getElementById('profitValue').style.color = data.profit >= 0 ? '#4caf50' : '#f44336';
+                document.getElementById('tradesValue').innerText = data.trades;
+
+                document.getElementById('connectionStatus').innerText = "● Подключено";
+                document.getElementById('connectionStatus').style.color = "#4caf50";
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('connectionStatus').innerText = "● Ошибка соединения";
+                document.getElementById('connectionStatus').style.color = "#f44336";
+            }
+        }
+
+        // Переключение режима
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const desc = document.getElementById('modeDescription');
+            if (mode === 'demo') {
+                desc.innerText = "Торговля на виртуальные средства. Безопасно для тестирования стратегий.";
+            } else {
+                desc.innerText = "Реальная торговля. Убедитесь, что API ключи добавлены.";
+                if (!localStorage.getItem('api_keys_set')) {
+                    setTimeout(() => {
+                        alert("Для реального режима необходимо добавить API ключи!");
+                        showKeyInput();
+                    }, 500);
+                }
+            }
+            fetchData();
+        }
+
+        // Чат функционал
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatContainer = document.getElementById('chatContainer');
+            
+            // Сообщение пользователя
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user';
+            userMsg.innerText = message;
+            chatContainer.appendChild(userMsg);
+            
+            input.value = '';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // Отправка на сервер
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message, mode: currentMode })
+                });
+                const data = await response.json();
+
+                const botMsg = document.createElement('div');
+                botMsg.className = 'message bot';
+                botMsg.innerText = data.reply;
+                chatContainer.appendChild(botMsg);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            } catch (error) {
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'message bot';
+                errorMsg.innerText = "Ошибка соединения с сервером.";
+                errorMsg.style.color = "#f44336";
+                chatContainer.appendChild(errorMsg);
+            }
+        }
+
+        // Управление ключами
+        function showKeyInput() {
+            document.getElementById('keyModal').style.display = 'flex';
+        }
+
+        function closeKeyModal() {
+            document.getElementById('keyModal').style.display = 'none';
+        }
+
+        function saveKeys() {
+            const exchange = document.getElementById('exchangeSelect').value;
+            const apiKey = document.getElementById('apiKeyInput').value;
+            const secretKey = document.getElementById('secretKeyInput').value;
+
+            if (!apiKey || !secretKey) {
+                alert("Заполните все поля!");
+                return;
+            }
+
+            // Сохраняем в памяти (не в localStorage для безопасности)
+            // В реальном приложении здесь был бы вызов API для сохранения на сервере
+            localStorage.setItem('api_keys_set', 'true');
+            
+            // Отправка ключей на сервер (в памяти сервера)
+            fetch(`${BACKEND_URL}/api/set_keys`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    exchange: exchange,
+                    api_key: apiKey,
+                    secret_key: secretKey
+                })
+            }).then(() => {
+                alert("Ключи успешно добавлены! Они будут действовать 4 часа.");
+                closeKeyModal();
+                document.getElementById('keyStatus').innerText = "✅ Ключи активны (осталось ~4ч)";
+                document.getElementById('keyStatus').style.color = "#4caf50";
+            }).catch(err => {
+                alert("Ошибка при сохранении ключей");
+            });
+        }
+
+        // Запуск
+        initChart();
+        fetchData();
+        updateInterval = setInterval(fetchData, 5000); // Обновление каждые 5 секунд
+
+        // Обработка Enter в чате
+        document.getElementById('chatInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
